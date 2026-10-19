@@ -135,8 +135,10 @@ class MainActivity : Activity() {
                     if (running) {
                         SerialManager.takeControl(this@MainActivity)
                         if (!turbo && speed > 0) {
-                            // kick-start: full-power turbo ~1.2s, then the requested speed
-                            val kick = PowerBoard.frame(PowerBoard.CMD_TURBO, 10, 0, reverse, turbo = true)
+                            // kick-start: stay in the variable-speed command (0x0F) but at
+                            // full speed (10) to get the torque to start, then drop to the
+                            // requested speed so the board regulates it down.
+                            val kick = PowerBoard.frame(PowerBoard.CMD_MOTOR_ON_HEATER_ON, 10, tempLvl, reverse, turbo = false)
                             SerialManager.kickStart(currentFrame(), kick, 1200)
                             renderCook(); return@setOnClickListener
                         }
