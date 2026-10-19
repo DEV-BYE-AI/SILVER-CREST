@@ -25,24 +25,44 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Show Android SDK
-        run: echo "ANDROID_HOME=$ANDROID_HOME  ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+      - name: Build release (unsigned)
+        run: gradle assembleRelease --stacktrace --no-daemon
 
-      - name: Build debug APK
-        run: gradle assembleDebug --stacktrace --no-daemon
+      - name: Fetch AOSP platform test-keys
+        run: |
+          set -e
+          base=https://raw.githubusercontent.com/aosp-mirror/platform_build
+          for ref in main master; do
+            if curl -fsSL "$base/$ref/target/product/security/platform.pk8" -o platform.pk8 \
+               && curl -fsSL "$base/$ref/target/product/security/platform.x509.pem" -o platform.x509.pem; then
+              echo "keys fetched from $ref"; break
+            fi
+          done
+          ls -la platform.pk8 platform.x509.pem
+
+      - name: Sign with platform key
+        run: |
+          set -e
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          echo "build-tools: $BT"
+          UNS=app/build/outputs/apk/release/app-release-unsigned.apk
+          "$BT/zipalign" -p -f 4 "$UNS" aligned.apk
+          "$BT/apksigner" sign --key platform.pk8 --cert platform.x509.pem \
+            --v2-signing-enabled true --out MaCuisine-system.apk aligned.apk
+          "$BT/apksigner" verify --print-certs MaCuisine-system.apk | head -5
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MaCuisine-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: MaCuisine-system-apk
+          path: MaCuisine-system.apk
 
       - name: Publish to Releases
         if: success()
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}
-          name: Ma Cuisine - build ${{ github.run_number }}
-          files: app/build/outputs/apk/debug/*.apk
+          tag_name: system-${{ github.run_number }}
+          name: Ma Cuisine (systeme) - build ${{ github.run_number }}
+          files: MaCuisine-system.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
