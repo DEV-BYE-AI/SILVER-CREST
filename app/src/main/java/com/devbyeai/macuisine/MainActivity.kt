@@ -191,8 +191,9 @@ class MainActivity : Activity() {
     }
 
     private fun sendCurrent() {
-        val f = if (running) currentFrame() else PowerBoard.frame(PowerBoard.CMD_ALL_OFF, 0, 0, false)
-        SerialManager.send(f)
+        // Stream the run frame while running, otherwise stream all-off.
+        val f = if (running) currentFrame() else PowerBoard.OFF
+        SerialManager.setFrame(f)
     }
 
     private fun fmt(s: Int): String = "${s / 60}:${(s % 60).toString().padStart(2, '0')}"

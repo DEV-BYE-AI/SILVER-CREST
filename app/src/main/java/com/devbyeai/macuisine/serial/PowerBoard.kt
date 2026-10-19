@@ -1,15 +1,16 @@
 package com.devbyeai.macuisine.serial
 
-/** Frame builder for the Monsieur Cuisine power board, from reverse engineering.
- *  15 bytes: 55 0F A1 <cmd> <flag> <speed> <temp> 00 00 00 00 <dir> <scale> <cksum> AA
- *  speed 0..10, temp level 0..18, cksum = sum(bytes[0..12]) & 0xFF. */
+/** Frame builder for the Monsieur Cuisine power board (reverse engineered).
+ *  TX frame = 15 bytes: 55 0F A1 <cmd> <flag> <speed> <temp> 00 00 00 00 <dir> <scale> <cksum> AA
+ *  speed 0..10, temp level 0..18, cksum = sum(bytes[0..12]) & 0xFF.
+ *  Command bytes (payload[1]) decoded from PowerBoard$2 remap table. */
 object PowerBoard {
 
-    // indicative work-command codes (to confirm by live capture)
-    const val CMD_MOTOR_ON_HEATER_ON = 0x00
-    const val CMD_ALL_OFF = 0x01
-    const val CMD_HEATER_ONLY = 0x02
-    const val CMD_TURBO = 0x03
+    // Work-command bytes written at frame[3] (confirmed from the switch map)
+    const val CMD_MOTOR_ON_HEATER_ON = 0x0F   // motor (+ heat if temp>0)
+    const val CMD_ALL_OFF            = 0x05
+    const val CMD_HEATER_ONLY        = 0x04
+    const val CMD_TURBO              = 0x03
 
     fun frame(cmd: Int, speed: Int, tempLevel: Int, reverse: Boolean, turbo: Boolean = false, scale: Int = 0x00): ByteArray {
         val sp = speed.coerceIn(0, 10)
@@ -30,13 +31,16 @@ object PowerBoard {
         return out
     }
 
+    /** Pick the work command. Heat is governed by the temp level, so motor-without-heat
+     *  uses MOTOR_ON_HEATER_ON with tempLevel = 0. */
     fun autoCmd(speed: Int, tempLevel: Int, turbo: Boolean): Int = when {
-        turbo -> CMD_TURBO
-        speed > 0 && tempLevel > 0 -> CMD_MOTOR_ON_HEATER_ON
-        speed == 0 && tempLevel > 0 -> CMD_HEATER_ONLY
-        speed > 0 -> CMD_MOTOR_ON_HEATER_ON
-        else -> CMD_ALL_OFF
+        turbo                        -> CMD_TURBO
+        speed > 0                    -> CMD_MOTOR_ON_HEATER_ON
+        speed == 0 && tempLevel > 0  -> CMD_HEATER_ONLY
+        else                         -> CMD_ALL_OFF
     }
+
+    val OFF: ByteArray get() = frame(CMD_ALL_OFF, 0, 0, false)
 
     fun hex(frame: ByteArray): String =
         frame.joinToString(" ") { String.format("%02X", it.toInt() and 0xFF) }

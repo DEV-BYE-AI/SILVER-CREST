@@ -87,9 +87,10 @@ class GuideActivity : Activity() {
         val cmd = PowerBoard.autoCmd(s.speed, s.temp, false)
         val f = PowerBoard.frame(cmd, s.speed, s.temp, s.reverse)
         frame.text = PowerBoard.hex(f)
-        SerialManager.send(f)
+        // Display only: guided cooking does not drive the motor yet (safety).
+        SerialManager.allOff()
     }
 
     private fun fmt(s: Int) = "${s / 60}:${(s % 60).toString().padStart(2, '0')}"
-    override fun onDestroy() { super.onDestroy(); SerialManager.send(PowerBoard.frame(PowerBoard.CMD_ALL_OFF,0,0,false)) }
+    override fun onDestroy() { super.onDestroy(); SerialManager.allOff() }
 }
