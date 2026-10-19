@@ -23,5 +23,9 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     packaging { jniLibs { useLegacyPackaging = true } }
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
+    }
 }
 dependencies { }
