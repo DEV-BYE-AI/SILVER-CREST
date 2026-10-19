@@ -147,25 +147,27 @@ init matérielle cachée. La trame produite est donc strictement celle du §3.
 - Avec cet uid, l'appli peut aussi lire `/proc/<pid>/fd` du service Lidl (pour trouver le
   port) et activer/désactiver le paquet Lidl via `PackageManager.setApplicationEnabledSetting`.
 
-## 7. Diagnostic « le moteur ne tourne pas »
+## 7. Le moteur et le kick-start (important)
 
-Symptômes observés : **RPM = 0**, couvercle vu fermé, **aucune erreur**, le ventilateur
-de refroidissement tourne. La carte reçoit la commande (checksum validé), passe en état
-« moteur ON » (le ventilo démarre), envoie le courant — mais le rotor ne tourne pas.
+Symptôme observé : aux **vitesses variables 1–10** (commande `0x0F`), le moteur **ne
+démarre pas** (RPM reste 0, aucune erreur, le ventilateur tourne). En revanche, en
+**turbo / pleine puissance** (commande `0x03`), **le moteur tourne parfaitement**.
 
-➡️ **Diagnostic : circuit moteur ouvert.** Confirmé par le **endurance test de l'appli
-Lidl d'origine** : elle commande le moteur à toutes les vitesses et dans les deux sens,
-le moteur ne tourne pas non plus. Ce n'est donc **pas** un problème logiciel.
+➡️ **Ce n'est donc pas une panne matérielle** : le moteur, les charbons et l'étage de
+puissance fonctionnent. Le moteur manque simplement de **couple pour démarrer** sous la
+puissance réduite d'une vitesse basse (découpage de phase). Une fois lancé, il **tient**
+sans problème une vitesse plus basse.
 
-### Réparation (ordre de probabilité)
-1. **Charbons (balais)** du moteur — usés/coincés = circuit ouvert (panne n°1).
-2. **Connecteur / fils** moteur ↔ carte de puissance.
-3. **Fusible thermique** du moteur (continuité).
-4. **Continuité du bobinage** (quelques ohms attendus).
-5. **Étage de puissance** (triac) sur la carte.
+### Solution logicielle : kick-start turbo
+Au démarrage à une vitesse normale, envoyer une **rafale turbo pleine puissance (`0x03`,
+vitesse 10) pendant ~1,2 s** pour lancer le rotor, puis **retomber sur la commande de
+vitesse demandée** (`0x0F` + vitesse). Résultat : **toutes les vitesses démarrent et se
+maintiennent.** Implémenté dans `SerialManager.kickStart()` + le bouton Départ de
+`MainActivity`.
 
-Mesure de référence : multimètre en Ω aux bornes moteur.
-`OL/∞` → charbons ou fusible thermique ; `quelques Ω` → étage de puissance de la carte.
+> Note : si un jour le moteur ne démarre même plus en turbo, alors seulement envisager le
+> matériel (charbons usés, fusible thermique, connecteur, étage de puissance) — mesure Ω
+> aux bornes moteur : `OL/∞` = circuit ouvert, `quelques Ω` = moteur bon.
 
 ---
 
