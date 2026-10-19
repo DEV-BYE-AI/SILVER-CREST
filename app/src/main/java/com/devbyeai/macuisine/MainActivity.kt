@@ -61,7 +61,10 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        SerialManager.start(this)
+        // Layer 1 must stay alive: make sure the stock Lidl app is enabled.
+        try { com.devbyeai.macuisine.serial.StockProbe.restore(this) } catch (_: Exception) {}
+        // Display-only by default; never let a serial error crash the UI.
+        try { SerialManager.start(this) } catch (_: Exception) {}
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -112,27 +115,23 @@ class MainActivity : Activity() {
             text = "Départ"; setTextColor(Color.parseColor("#152009")); setBackgroundColor(GO)
             setOnClickListener {
                 running = !running
-                if (running) {
-                    // take control back from the Lidl app and (re)open the port
-                    try { getSharedPreferences("mc", MODE_PRIVATE).edit().putBoolean("yieldToLidl", false).apply() } catch (_: Exception) {}
-                    SerialManager.stop(); SerialManager.start(this@MainActivity)
-                }
+                try {
+                    if (running) SerialManager.takeControl(this@MainActivity)  // drive the board
+                    else SerialManager.releaseControl()                        // hand it back to Lidl
+                } catch (_: Exception) {}
                 renderCook(); sendCurrent()
             }
         }
-        val lidlBtn = pill("Test Lidl") {
-            // hand control back to the stock app: remember to yield, re-enable it,
-            // release the port, and launch it by its explicit component.
-            try { getSharedPreferences("mc", MODE_PRIVATE).edit().putBoolean("yieldToLidl", true).apply() } catch (_: Exception) {}
+        val lidlBtn = pill("Ouvrir Lidl") {
+            // hand the board back and open the stock Lidl app
+            try { SerialManager.releaseControl() } catch (_: Exception) {}
             running = false
-            val r = com.devbyeai.macuisine.serial.StockProbe.restore(this)
-            SerialManager.stop()
-            Toast.makeText(this, "Lidl $r — lancement…", Toast.LENGTH_LONG).show()
+            try { com.devbyeai.macuisine.serial.StockProbe.restore(this) } catch (_: Exception) {}
             try {
-                val cn = android.content.ComponentName("de.silpion.mc2", "de.silpion.mc2.activity.MainActivity")
-                startActivity(android.content.Intent().setComponent(cn).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+                packageManager.getLaunchIntentForPackage("de.silpion.mc2")?.let { startActivity(it) }
+                    ?: Toast.makeText(this, "Appli Lidl introuvable", Toast.LENGTH_SHORT).show()
             } catch (_: Exception) {
-                try { packageManager.getLaunchIntentForPackage("de.silpion.mc2")?.let { startActivity(it) } } catch (_: Exception) {}
+                Toast.makeText(this, "Impossible d'ouvrir l'appli Lidl", Toast.LENGTH_SHORT).show()
             }
         }
         ctr.addView(turboBtn); ctr.addView(space(10)); ctr.addView(revBtn); ctr.addView(space(10))
