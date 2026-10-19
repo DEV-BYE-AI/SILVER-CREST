@@ -34,6 +34,18 @@ object SerialManager {
     fun start(ctx: Context) {
         if (streamer != null) return
 
+        // If the user handed control back to the Lidl app, stay out of the way:
+        // don't disable it and don't grab the serial port.
+        val yielding = try {
+            ctx.getSharedPreferences("mc", Context.MODE_PRIVATE).getBoolean("yieldToLidl", false)
+        } catch (_: Exception) { false }
+        if (yielding) {
+            simulated = true
+            note = "contrôle laissé à l'appli Lidl"
+            Log.i("SerialManager", note)
+            return
+        }
+
         // 1) learn the real port from the stock service BEFORE we stop it
         val stockPort = StockProbe.findStockTty()
         // 2) stop the stock service fighting us for that port

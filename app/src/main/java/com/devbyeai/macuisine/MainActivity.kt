@@ -110,17 +110,30 @@ class MainActivity : Activity() {
         val revBtn = pill("Sens inv.") { reverse = !reverse; afterChange() }
         goBtn = Button(this).apply {
             text = "Départ"; setTextColor(Color.parseColor("#152009")); setBackgroundColor(GO)
-            setOnClickListener { running = !running; renderCook(); sendCurrent() }
+            setOnClickListener {
+                running = !running
+                if (running) {
+                    // take control back from the Lidl app and (re)open the port
+                    try { getSharedPreferences("mc", MODE_PRIVATE).edit().putBoolean("yieldToLidl", false).apply() } catch (_: Exception) {}
+                    SerialManager.stop(); SerialManager.start(this@MainActivity)
+                }
+                renderCook(); sendCurrent()
+            }
         }
         val lidlBtn = pill("Test Lidl") {
-            // re-enable the stock app, release the port, hand control back to it
+            // hand control back to the stock app: remember to yield, re-enable it,
+            // release the port, and launch it by its explicit component.
+            try { getSharedPreferences("mc", MODE_PRIVATE).edit().putBoolean("yieldToLidl", true).apply() } catch (_: Exception) {}
+            running = false
             val r = com.devbyeai.macuisine.serial.StockProbe.restore(this)
             SerialManager.stop()
             Toast.makeText(this, "Lidl $r — lancement…", Toast.LENGTH_LONG).show()
             try {
-                val i = packageManager.getLaunchIntentForPackage("de.silpion.mc2")
-                if (i != null) startActivity(i)
-            } catch (_: Exception) {}
+                val cn = android.content.ComponentName("de.silpion.mc2", "de.silpion.mc2.activity.MainActivity")
+                startActivity(android.content.Intent().setComponent(cn).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+            } catch (_: Exception) {
+                try { packageManager.getLaunchIntentForPackage("de.silpion.mc2")?.let { startActivity(it) } } catch (_: Exception) {}
+            }
         }
         ctr.addView(turboBtn); ctr.addView(space(10)); ctr.addView(revBtn); ctr.addView(space(10))
         ctr.addView(goBtn, lp(dp(96), dp(56))); ctr.addView(space(10)); ctr.addView(lidlBtn)
