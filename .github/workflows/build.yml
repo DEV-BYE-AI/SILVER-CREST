@@ -17,13 +17,13 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
+
+      - name: Show Android SDK
+        run: echo "ANDROID_HOME=$ANDROID_HOME  ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
 
       - name: Build debug APK
         run: gradle assembleDebug --stacktrace --no-daemon
