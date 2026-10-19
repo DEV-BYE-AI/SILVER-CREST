@@ -1,19 +1,24 @@
 package com.devbyeai.macuisine.serial
 
+import android.content.Context
 import android.util.Log
 import android_serialport_api.SerialPort
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 
-/** Opens /dev/ttyMT0, STREAMS the current command frame every ~250 ms
- *  (like the stock onPerformPeriodicHardwareAction), and LOGS the board's
- *  replies so we can diagnose why the motor does / doesn't run. */
+/** Finds the real power-board UART from the stock app, neutralizes the stock
+ *  service so nothing else writes to it, opens that port, STREAMS the current
+ *  command frame every ~250 ms, and LOGS the board's replies. */
 object SerialManager {
-    const val DEVICE = "/dev/ttyMT0"
     const val BAUD = 921600
     const val INTERVAL_MS = 250L
+    const val FALLBACK = "/dev/ttyMT0"
 
+    @Volatile var device = FALLBACK
+        private set
+    @Volatile var note = ""
+        private set
     @Volatile var simulated = true
         private set
 
@@ -26,18 +31,30 @@ object SerialManager {
     private var reader: Thread? = null
 
     @Synchronized
-    fun start() {
+    fun start(ctx: Context) {
         if (streamer != null) return
+
+        // 1) learn the real port from the stock service BEFORE we stop it
+        val stockPort = StockProbe.findStockTty()
+        // 2) stop the stock service fighting us for that port
+        val action = StockProbe.neutralize(ctx)
+        // 3) pick the discovered port (fallback to ttyMT0)
+        device = stockPort ?: FALLBACK
+        note = "port=$device (${if (stockPort != null) "from stock" else "fallback"}), stock=$action"
+        Log.i("SerialManager", note)
+        // give the stock process a moment to die and release the fd
+        try { Thread.sleep(400) } catch (_: Exception) {}
+
         try {
-            val p = SerialPort(File(DEVICE), BAUD, 0)
+            val p = SerialPort(File(device), BAUD, 0)
             port = p
             out = p.outputStream
             inp = p.inputStream
             simulated = false
-            Log.i("SerialManager", "Opened $DEVICE @ $BAUD")
+            Log.i("SerialManager", "Opened $device @ $BAUD")
         } catch (t: Throwable) {
             simulated = true
-            Log.w("SerialManager", "Serial unavailable, simulating: ${t.message}")
+            Log.w("SerialManager", "Serial unavailable on $device, simulating: ${t.message}")
         }
 
         streamer = Thread {

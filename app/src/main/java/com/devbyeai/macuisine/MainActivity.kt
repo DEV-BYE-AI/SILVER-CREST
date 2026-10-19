@@ -61,7 +61,7 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        SerialManager.start()
+        SerialManager.start(this)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -179,7 +179,7 @@ class MainActivity : Activity() {
         tTemp.text = if (tempLvl == 0) "Off" else TEMPC[tempLvl].toString()
         goBtn.text = if (running) "Stop" else "Départ"
         goBtn.setBackgroundColor(if (running) HOT else GO)
-        val mode = if (SerialManager.simulated) "SIMULATION (port non accessible)" else "connecté"
+        val mode = if (SerialManager.simulated) "SIMULATION (port non accessible)" else "connecté · ${SerialManager.device}"
         tStatus.text = (if (running) "En marche" else "Au repos") + " · $mode"
         tFrame.text = PowerBoard.hex(currentFrame())
     }

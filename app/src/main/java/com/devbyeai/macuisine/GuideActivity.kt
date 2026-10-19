@@ -67,7 +67,7 @@ class GuideActivity : Activity() {
         frame = TextView(this).apply { setTextColor(Color.parseColor("#ECC98F")); textSize = 13f; typeface = Typeface.MONOSPACE; setBackgroundColor(Color.parseColor("#120F0B")); setPadding(dp(12),dp(10),dp(12),dp(10)) }
         root.addView(sh); root.addView(frame, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
 
-        SerialManager.start()
+        SerialManager.start(this)
         setContentView(ScrollView(this).apply { setBackgroundColor(BG); addView(root) })
         go(0)
     }
