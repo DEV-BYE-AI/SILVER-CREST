@@ -30,17 +30,30 @@ object SerialManager {
         private set
 
     @Volatile private var currentFrame: ByteArray = PowerBoard.OFF
-    @Volatile private var kickFrame: ByteArray? = null
-    @Volatile private var kickUntil = 0L
     @Volatile private var lastTxLogged: String = ""
 
-    /** Kick-start: stream [kick] (full-power turbo) for [ms] to get the motor
-     *  spinning, then fall back to [target] (the requested speed). Fixes motors
-     *  that lack the torque to start at low variable speed. */
-    fun kickStart(target: ByteArray, kick: ByteArray, ms: Long) {
-        currentFrame = target
-        kickFrame = kick
-        kickUntil = System.currentTimeMillis() + ms
+    // Software PWM: this unit's variable-speed stage is dead, so we pulse the
+    // full-power (turbo) frame to approximate lower speeds.
+    @Volatile var pwmLevel = 0            // 0 = plain currentFrame, 1..10 = PWM duty
+        private set
+    @Volatile private var pwmOnFrame: ByteArray = PowerBoard.OFF
+    const val PWM_PERIOD_MS = 1400L
+    const val PWM_MIN_ON_MS = 200L
+
+    /** Drive the motor at [level] (1..10) using full-power pulses [powerFrame].
+     *  level 10 runs continuously; lower levels pulse (duty = level/10). */
+    fun drive(level: Int, powerFrame: ByteArray) {
+        pwmOnFrame = powerFrame
+        pwmLevel = level.coerceIn(0, 10)
+        currentFrame = if (pwmLevel >= 10) powerFrame else PowerBoard.OFF
+    }
+
+    private fun pwmFrame(): ByteArray {
+        if (pwmLevel in 1..9) {
+            val onMs = (PWM_PERIOD_MS * pwmLevel / 10).coerceAtLeast(PWM_MIN_ON_MS)
+            return if ((System.currentTimeMillis() % PWM_PERIOD_MS) < onMs) pwmOnFrame else PowerBoard.OFF
+        }
+        return currentFrame
     }
     private var port: SerialPort? = null
     private var out: OutputStream? = null
@@ -79,7 +92,7 @@ object SerialManager {
                 // the stock Lidl service keeps control of the board.
                 if (o != null && driving) {
                     try {
-                        val f = if (System.currentTimeMillis() < kickUntil) (kickFrame ?: currentFrame) else currentFrame
+                        val f = pwmFrame()
                         o.write(f); o.flush()
                         val hex = PowerBoard.hex(f)
                         if (hex != lastTxLogged) { Log.i("SerialTX", hex); lastTxLogged = hex }
@@ -124,6 +137,7 @@ object SerialManager {
     /** Hand the board back to the stock service. */
     fun releaseControl() {
         driving = false
+        pwmLevel = 0
         currentFrame = PowerBoard.OFF
     }
 
@@ -133,6 +147,7 @@ object SerialManager {
     @Synchronized
     fun stop() {
         currentFrame = PowerBoard.OFF
+        pwmLevel = 0
         driving = false
         streamer?.interrupt(); streamer = null
         reader?.interrupt(); reader = null

@@ -132,17 +132,8 @@ class MainActivity : Activity() {
             setOnClickListener {
                 running = !running
                 try {
-                    if (running) {
-                        SerialManager.takeControl(this@MainActivity)
-                        if (!turbo && speed > 0) {
-                            // kick-start: stay in the variable-speed command (0x0F) but at
-                            // full speed (10) to get the torque to start, then drop to the
-                            // requested speed so the board regulates it down.
-                            val kick = PowerBoard.frame(PowerBoard.CMD_MOTOR_ON_HEATER_ON, 10, tempLvl, reverse, turbo = false)
-                            SerialManager.kickStart(currentFrame(), kick, 1200)
-                            renderCook(); return@setOnClickListener
-                        }
-                    } else SerialManager.releaseControl()
+                    if (running) SerialManager.takeControl(this@MainActivity)
+                    else SerialManager.releaseControl()
                 } catch (_: Exception) {}
                 renderCook(); sendCurrent()
             }
@@ -237,7 +228,9 @@ class MainActivity : Activity() {
         goBtn.background = round(if (running) HOT else ACCENT, 28)
         val mode = if (SerialManager.simulated) "affichage seul" else "connecté"
         tStatus.text = (if (running) "En marche" else "Au repos") + " · $mode"
-        tFrame.text = PowerBoard.hex(currentFrame())
+        tFrame.text = if (running)
+            "turbo PWM · niveau ${if (turbo) 10 else speed}/10"
+        else PowerBoard.hex(PowerBoard.OFF)
     }
 
     private fun currentFrame(): ByteArray {
@@ -247,8 +240,16 @@ class MainActivity : Activity() {
     }
 
     private fun sendCurrent() {
-        val f = if (running) currentFrame() else PowerBoard.OFF
-        SerialManager.setFrame(f)
+        try {
+            if (running) {
+                // This unit only spins on the full-power (turbo) command; approximate
+                // the chosen speed with software PWM of that command.
+                val power = PowerBoard.frame(PowerBoard.CMD_TURBO, 10, 0, reverse, turbo = true)
+                SerialManager.drive(if (turbo) 10 else speed, power)
+            } else {
+                SerialManager.drive(0, PowerBoard.OFF)
+            }
+        } catch (_: Exception) {}
     }
 
     private fun fmt(s: Int): String = "${s / 60}:${(s % 60).toString().padStart(2, '0')}"
