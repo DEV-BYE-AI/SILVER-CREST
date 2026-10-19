@@ -12,7 +12,7 @@ import java.io.OutputStream
  *  command frame every ~250 ms, and LOGS the board's replies. */
 object SerialManager {
     const val BAUD = 4800   // real power-board rate (from HardwareMachineService), NOT 921600
-    const val INTERVAL_MS = 250L
+    const val INTERVAL_MS = 100L   // stock app streams every 100 ms (Lsd$2.run) — match it exactly
     const val FALLBACK = "/dev/ttyMT0"
 
     @Volatile var device = FALLBACK
@@ -85,6 +85,20 @@ object SerialManager {
                         val sb = StringBuilder()
                         for (k in 0 until take) sb.append(String.format("%02X ", buf[k].toInt() and 0xFF))
                         Log.i("SerialRX", "n=$n " + sb.toString().trim())
+                        // decode a board status frame: 55 1B B1 <s> ... (rpm at +9,+10)
+                        var p = -1
+                        for (k in 0..(n - 27)) {
+                            if ((buf[k].toInt() and 0xFF) == 0x55 && (buf[k+1].toInt() and 0xFF) == 0x1B
+                                && (buf[k+2].toInt() and 0xFF) == 0xB1) { p = k; break }
+                        }
+                        if (p >= 0) {
+                            val s = buf[p+3].toInt() and 0xFF
+                            val errCode = buf[p+5].toInt() and 0xFF
+                            val rpm = ((buf[p+9].toInt() and 0xFF) shl 8) or (buf[p+10].toInt() and 0xFF)
+                            val cover = (s and 0x80) != 0
+                            val err = (s and 0x10) != 0
+                            Log.i("SerialStat", "rpm=$rpm coverOpen=$cover err=$err errCode=$errCode state=${s and 0x03} b3=0x${String.format("%02X", s)}")
+                        }
                         lastLog = now
                     }
                 } catch (e: Exception) { break }

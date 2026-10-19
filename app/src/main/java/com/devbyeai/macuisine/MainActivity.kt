@@ -112,9 +112,18 @@ class MainActivity : Activity() {
             text = "Départ"; setTextColor(Color.parseColor("#152009")); setBackgroundColor(GO)
             setOnClickListener { running = !running; renderCook(); sendCurrent() }
         }
-        val tareBtn = pill("Tare") { }
+        val lidlBtn = pill("Test Lidl") {
+            // re-enable the stock app, release the port, hand control back to it
+            val r = com.devbyeai.macuisine.serial.StockProbe.restore(this)
+            SerialManager.stop()
+            Toast.makeText(this, "Lidl $r — lancement…", Toast.LENGTH_LONG).show()
+            try {
+                val i = packageManager.getLaunchIntentForPackage("de.silpion.mc2")
+                if (i != null) startActivity(i)
+            } catch (_: Exception) {}
+        }
         ctr.addView(turboBtn); ctr.addView(space(10)); ctr.addView(revBtn); ctr.addView(space(10))
-        ctr.addView(goBtn, lp(dp(96), dp(56))); ctr.addView(space(10)); ctr.addView(tareBtn)
+        ctr.addView(goBtn, lp(dp(96), dp(56))); ctr.addView(space(10)); ctr.addView(lidlBtn)
         v.addView(ctr, lp(MATCH_PARENT, WRAP_CONTENT))
         v.addView(space(14))
 

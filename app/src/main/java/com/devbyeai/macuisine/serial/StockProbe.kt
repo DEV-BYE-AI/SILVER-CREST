@@ -60,4 +60,17 @@ object StockProbe {
         Log.i(TAG, "killed $killed stock pids")
         return "killed=$killed"
     }
+
+    /** Re-enable the stock Lidl app (to compare its motor behaviour). */
+    fun restore(ctx: Context): String {
+        return try {
+            ctx.packageManager.setApplicationEnabledSetting(
+                STOCK, PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, 0)
+            Log.i(TAG, "re-enabled $STOCK")
+            "re-enabled"
+        } catch (e: Exception) {
+            Log.w(TAG, "re-enable failed: ${e.message}")
+            "failed: ${e.message}"
+        }
+    }
 }
