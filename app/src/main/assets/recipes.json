@@ -1,0 +1,42 @@
+[
+  {"id":1,"name":"Vinaigrette express","level":"Facile","duration":2,"yield":4,"yieldUnit":"parts","tags":["Sauce","Rapide"],
+   "ingredients":[{"t":"3 c. à soupe d'huile d'olive"},{"t":"1 c. à soupe de vinaigre"},{"t":"1 c. à café de moutarde"},{"t":"Sel, poivre"}],
+   "instructions":["Mettre tous les ingrédients dans le bol.","Émulsionner quelques secondes."],
+   "steps":[
+     {"text":"Verser l'huile, le vinaigre et la moutarde dans le bol.","speed":0,"temp":0,"time":0,"reverse":false},
+     {"text":"Émulsionner 20 secondes à vitesse 4.","speed":4,"temp":0,"time":20,"reverse":false}]},
+  {"id":2,"name":"Soupe de légumes maison","level":"Facile","duration":30,"yield":4,"yieldUnit":"bols","tags":["Soupe","Plat"],
+   "ingredients":[{"h":"Pour 4 bols"},{"t":"500 g de légumes variés"},{"t":"800 g d'eau"},{"t":"1 cube de bouillon"},{"t":"Sel, poivre"}],
+   "instructions":["Mixer les légumes.","Cuire puis mixer à nouveau."],
+   "steps":[
+     {"text":"Mettre les légumes en morceaux dans le bol.","speed":0,"temp":0,"time":0,"reverse":false},
+     {"text":"Hacher 10 secondes à vitesse 5.","speed":5,"temp":0,"time":10,"reverse":false},
+     {"text":"Ajouter l'eau et le bouillon, cuire 20 minutes à 100°C, vitesse 1.","speed":1,"temp":12,"time":1200,"reverse":false},
+     {"text":"Mixer 1 minute à vitesse 8 pour une texture lisse.","speed":8,"temp":0,"time":60,"reverse":false}]},
+  {"id":3,"name":"Compote de pommes","level":"Facile","duration":25,"yield":4,"yieldUnit":"parts","tags":["Dessert"],
+   "ingredients":[{"t":"600 g de pommes"},{"t":"50 g d'eau"},{"t":"1 c. à café de cannelle"}],
+   "instructions":["Cuire les pommes puis mixer."],
+   "steps":[
+     {"text":"Mettre les pommes en quartiers et l'eau dans le bol.","speed":0,"temp":0,"time":0,"reverse":false},
+     {"text":"Cuire 15 minutes à 90°C, vitesse 1.","speed":1,"temp":10,"time":900,"reverse":false},
+     {"text":"Mixer 30 secondes à vitesse 6.","speed":6,"temp":0,"time":30,"reverse":false}]},
+  {"id":4,"name":"Pâte à pizza","level":"Moyen","duration":20,"yield":2,"yieldUnit":"pizzas","tags":["Base","Pétrissage"],
+   "ingredients":[{"t":"300 g de farine"},{"t":"180 g d'eau tiède"},{"t":"1 sachet de levure"},{"t":"1 c. à café de sel"},{"t":"2 c. à soupe d'huile"}],
+   "instructions":["Pétrir puis laisser lever."],
+   "steps":[
+     {"text":"Verser l'eau tiède et la levure, mélanger 10 secondes à vitesse 2.","speed":2,"temp":0,"time":10,"reverse":false},
+     {"text":"Ajouter farine, sel et huile. Pétrir 3 minutes.","speed":4,"temp":0,"time":180,"reverse":true},
+     {"text":"Laisser lever 1 heure hors du bol.","speed":0,"temp":0,"time":0,"reverse":false}]},
+  {"id":5,"name":"Smoothie fruits rouges","level":"Facile","duration":3,"yield":2,"yieldUnit":"verres","tags":["Boisson","Rapide"],
+   "ingredients":[{"t":"250 g de fruits rouges"},{"t":"200 g de yaourt"},{"t":"1 c. à soupe de miel"}],
+   "instructions":["Mixer le tout."],
+   "steps":[
+     {"text":"Mettre tous les ingrédients dans le bol.","speed":0,"temp":0,"time":0,"reverse":false},
+     {"text":"Mixer 1 minute à vitesse 10.","speed":10,"temp":0,"time":60,"reverse":false}]},
+  {"id":6,"name":"Riz vapeur","level":"Facile","duration":25,"yield":4,"yieldUnit":"parts","tags":["Vapeur","Accompagnement"],
+   "ingredients":[{"t":"300 g de riz"},{"t":"600 g d'eau"},{"t":"Sel"}],
+   "instructions":["Cuire à la vapeur."],
+   "steps":[
+     {"text":"Rincer le riz et le mettre dans le panier vapeur.","speed":0,"temp":0,"time":0,"reverse":false},
+     {"text":"Verser l'eau dans le bol, cuisson vapeur 20 minutes.","speed":0,"temp":15,"time":1200,"reverse":false}]}
+]
