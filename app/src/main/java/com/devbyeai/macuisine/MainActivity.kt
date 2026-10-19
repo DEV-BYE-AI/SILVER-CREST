@@ -132,8 +132,15 @@ class MainActivity : Activity() {
             setOnClickListener {
                 running = !running
                 try {
-                    if (running) SerialManager.takeControl(this@MainActivity)
-                    else SerialManager.releaseControl()
+                    if (running) {
+                        SerialManager.takeControl(this@MainActivity)
+                        if (!turbo && speed > 0) {
+                            // kick-start: full-power turbo ~1.2s, then the requested speed
+                            val kick = PowerBoard.frame(PowerBoard.CMD_TURBO, 10, 0, reverse, turbo = true)
+                            SerialManager.kickStart(currentFrame(), kick, 1200)
+                            renderCook(); return@setOnClickListener
+                        }
+                    } else SerialManager.releaseControl()
                 } catch (_: Exception) {}
                 renderCook(); sendCurrent()
             }

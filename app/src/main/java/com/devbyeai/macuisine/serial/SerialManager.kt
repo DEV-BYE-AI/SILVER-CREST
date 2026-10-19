@@ -30,7 +30,18 @@ object SerialManager {
         private set
 
     @Volatile private var currentFrame: ByteArray = PowerBoard.OFF
+    @Volatile private var kickFrame: ByteArray? = null
+    @Volatile private var kickUntil = 0L
     @Volatile private var lastTxLogged: String = ""
+
+    /** Kick-start: stream [kick] (full-power turbo) for [ms] to get the motor
+     *  spinning, then fall back to [target] (the requested speed). Fixes motors
+     *  that lack the torque to start at low variable speed. */
+    fun kickStart(target: ByteArray, kick: ByteArray, ms: Long) {
+        currentFrame = target
+        kickFrame = kick
+        kickUntil = System.currentTimeMillis() + ms
+    }
     private var port: SerialPort? = null
     private var out: OutputStream? = null
     private var inp: InputStream? = null
@@ -68,7 +79,7 @@ object SerialManager {
                 // the stock Lidl service keeps control of the board.
                 if (o != null && driving) {
                     try {
-                        val f = currentFrame
+                        val f = if (System.currentTimeMillis() < kickUntil) (kickFrame ?: currentFrame) else currentFrame
                         o.write(f); o.flush()
                         val hex = PowerBoard.hex(f)
                         if (hex != lastTxLogged) { Log.i("SerialTX", hex); lastTxLogged = hex }
