@@ -123,7 +123,7 @@ class MainActivity : Activity() {
         v.addView(space(10))
 
         val serialBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(Color.parseColor("#120F0B")); setPadding(dp(14),dp(12),dp(14),dp(12)) }
-        val sh = TextView(this).apply { text = "Console série — /dev/ttyMT0 @ 921600"; setTextColor(MUTED); textSize = 11f }
+        val sh = TextView(this).apply { text = "Console série — ${SerialManager.device} @ ${SerialManager.BAUD}"; setTextColor(MUTED); textSize = 11f }
         tFrame = TextView(this).apply { setTextColor(Color.parseColor("#ECC98F")); textSize = 13f; typeface = Typeface.MONOSPACE }
         serialBox.addView(sh); serialBox.addView(space(6)); serialBox.addView(tFrame)
         v.addView(serialBox, lp(MATCH_PARENT, WRAP_CONTENT))

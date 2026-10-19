@@ -11,7 +11,7 @@ import java.io.OutputStream
  *  service so nothing else writes to it, opens that port, STREAMS the current
  *  command frame every ~250 ms, and LOGS the board's replies. */
 object SerialManager {
-    const val BAUD = 921600
+    const val BAUD = 4800   // real power-board rate (from HardwareMachineService), NOT 921600
     const val INTERVAL_MS = 250L
     const val FALLBACK = "/dev/ttyMT0"
 
