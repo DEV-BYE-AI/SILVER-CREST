@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -17,14 +18,18 @@ import com.devbyeai.macuisine.serial.SerialManager
 
 class MainActivity : Activity() {
 
-    private val BG = Color.parseColor("#17130F")
-    private val PANEL = Color.parseColor("#201A15")
-    private val PANEL2 = Color.parseColor("#2A221B")
-    private val FG = Color.parseColor("#F4EDE3")
-    private val MUTED = Color.parseColor("#B4A797")
-    private val ACCENT = Color.parseColor("#E4A04D")
-    private val GO = Color.parseColor("#8FC26C")
-    private val HOT = Color.parseColor("#E4663B")
+    // Light modern palette (from the validated design)
+    private val BG          = Color.parseColor("#EEF1EC")
+    private val SURFACE     = Color.parseColor("#FFFFFF")
+    private val SURFACE2    = Color.parseColor("#F5F8F3")
+    private val INK         = Color.parseColor("#18231D")
+    private val MUTED       = Color.parseColor("#67736C")
+    private val FAINT       = Color.parseColor("#9AA69E")
+    private val ACCENT      = Color.parseColor("#2F9E5B")
+    private val ACCENT_SOFT = Color.parseColor("#E3F3EA")
+    private val ACCENT_DEEP = Color.parseColor("#1F7A44")
+    private val LINE        = Color.parseColor("#E3E9E2")
+    private val HOT         = Color.parseColor("#D9623A")
 
     private val TEMPC = intArrayOf(0,37,45,50,55,60,65,70,75,80,85,90,95,100,105,110,115,120,130)
     private val TIME_STEPS = intArrayOf(0,5,10,15,20,30,45,60,90,120,180,300,600,900,1800,2700,3600)
@@ -42,8 +47,11 @@ class MainActivity : Activity() {
     private lateinit var tStatus: TextView
     private lateinit var tFrame: TextView
     private lateinit var goBtn: Button
+    private lateinit var tabCookBtn: Button
+    private lateinit var tabRecBtn: Button
     private lateinit var cookView: View
     private lateinit var recipesView: View
+    private var showingCook = true
 
     private val handler = Handler(Looper.getMainLooper())
     private val ticker = object : Runnable {
@@ -59,31 +67,35 @@ class MainActivity : Activity() {
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
+    private fun round(color: Int, r: Int = 20, stroke: Int = 0, strokeColor: Int = LINE): GradientDrawable =
+        GradientDrawable().apply {
+            setColor(color); cornerRadius = dp(r).toFloat()
+            if (stroke > 0) setStroke(dp(stroke), strokeColor)
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Layer 1 must stay alive: make sure the stock Lidl app is enabled.
         try { com.devbyeai.macuisine.serial.StockProbe.restore(this) } catch (_: Exception) {}
-        // Display-only by default; never let a serial error crash the UI.
         try { SerialManager.start(this) } catch (_: Exception) {}
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(BG)
-            setPadding(dp(14), dp(14), dp(14), dp(14))
+            setPadding(dp(16), dp(18), dp(16), dp(18))
         }
 
         // top bar
         val top = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         val brand = TextView(this).apply {
-            text = "Ma Cuisine"; setTextColor(FG); textSize = 22f
+            text = "Ma Cuisine"; setTextColor(INK); textSize = 26f
             typeface = Typeface.create("serif", Typeface.BOLD)
         }
-        val tabCook = tab("Cuisiner") { showCook(true) }
-        val tabRec = tab("Recettes") { showCook(false) }
+        tabCookBtn = tab("Cuisiner") { showCook(true) }
+        tabRecBtn = tab("Recettes") { showCook(false) }
         top.addView(brand, lp(0, WRAP_CONTENT, 1f))
-        top.addView(tabCook); top.addView(space(8)); top.addView(tabRec)
+        top.addView(tabCookBtn); top.addView(space(8)); top.addView(tabRecBtn)
         root.addView(top, lp(MATCH_PARENT, WRAP_CONTENT))
-        root.addView(space(12))
+        root.addView(space(16))
 
         cookView = buildCook()
         recipesView = buildRecipes()
@@ -97,7 +109,10 @@ class MainActivity : Activity() {
     }
 
     private fun buildCook(): View {
-        val v = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(PANEL); setPadding(dp(18),dp(18),dp(18),dp(18)) }
+        val v = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = round(SURFACE, 22); setPadding(dp(20),dp(22),dp(20),dp(22))
+        }
         val dials = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
         tTime = bigNum("0:00")
         tSpeed = bigNum("0")
@@ -106,24 +121,24 @@ class MainActivity : Activity() {
         dials.addView(dial("Vitesse", tSpeed, { speed = (speed-1).coerceAtLeast(0); turbo=false; afterChange() }, { speed = (speed+1).coerceAtMost(10); turbo=false; afterChange() }), lp(0, WRAP_CONTENT, 1f))
         dials.addView(dial("Temp. °C", tTemp, { tempLvl = (tempLvl-1).coerceAtLeast(0); afterChange() }, { tempLvl = (tempLvl+1).coerceAtMost(18); afterChange() }), lp(0, WRAP_CONTENT, 1f))
         v.addView(dials, lp(MATCH_PARENT, WRAP_CONTENT))
-        v.addView(space(16))
+        v.addView(space(20))
 
         val ctr = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
         val turboBtn = pill("Turbo") { turbo = !turbo; afterChange() }
         val revBtn = pill("Sens inv.") { reverse = !reverse; afterChange() }
         goBtn = Button(this).apply {
-            text = "Départ"; setTextColor(Color.parseColor("#152009")); setBackgroundColor(GO)
+            text = "Départ"; setTextColor(Color.WHITE); textSize = 15f
+            typeface = Typeface.DEFAULT_BOLD; background = round(ACCENT, 28); stateListAnimator = null
             setOnClickListener {
                 running = !running
                 try {
-                    if (running) SerialManager.takeControl(this@MainActivity)  // drive the board
-                    else SerialManager.releaseControl()                        // hand it back to Lidl
+                    if (running) SerialManager.takeControl(this@MainActivity)
+                    else SerialManager.releaseControl()
                 } catch (_: Exception) {}
                 renderCook(); sendCurrent()
             }
         }
         val lidlBtn = pill("Ouvrir Lidl") {
-            // hand the board back and open the stock Lidl app
             try { SerialManager.releaseControl() } catch (_: Exception) {}
             running = false
             try { com.devbyeai.macuisine.serial.StockProbe.restore(this) } catch (_: Exception) {}
@@ -134,19 +149,21 @@ class MainActivity : Activity() {
                 Toast.makeText(this, "Impossible d'ouvrir l'appli Lidl", Toast.LENGTH_SHORT).show()
             }
         }
-        ctr.addView(turboBtn); ctr.addView(space(10)); ctr.addView(revBtn); ctr.addView(space(10))
-        ctr.addView(goBtn, lp(dp(96), dp(56))); ctr.addView(space(10)); ctr.addView(lidlBtn)
+        ctr.addView(turboBtn); ctr.addView(space(8)); ctr.addView(revBtn); ctr.addView(space(8))
+        ctr.addView(goBtn, lp(dp(104), dp(56))); ctr.addView(space(8)); ctr.addView(lidlBtn)
         v.addView(ctr, lp(MATCH_PARENT, WRAP_CONTENT))
-        v.addView(space(14))
+        v.addView(space(16))
 
         tStatus = TextView(this).apply { setTextColor(MUTED); textSize = 13f; gravity = Gravity.CENTER }
         v.addView(tStatus, lp(MATCH_PARENT, WRAP_CONTENT))
-        v.addView(space(10))
+        v.addView(space(12))
 
-        val serialBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(Color.parseColor("#120F0B")); setPadding(dp(14),dp(12),dp(14),dp(12)) }
-        val sh = TextView(this).apply { text = "Console série — ${SerialManager.device} @ ${SerialManager.BAUD}"; setTextColor(MUTED); textSize = 11f }
-        tFrame = TextView(this).apply { setTextColor(Color.parseColor("#ECC98F")); textSize = 13f; typeface = Typeface.MONOSPACE }
-        serialBox.addView(sh); serialBox.addView(space(6)); serialBox.addView(tFrame)
+        val serialBox = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; background = round(SURFACE2, 14); setPadding(dp(14),dp(10),dp(14),dp(10))
+        }
+        val sh = TextView(this).apply { text = "Liaison carte · ${SerialManager.device} @ ${SerialManager.BAUD}"; setTextColor(FAINT); textSize = 11f }
+        tFrame = TextView(this).apply { setTextColor(MUTED); textSize = 12f; typeface = Typeface.MONOSPACE }
+        serialBox.addView(sh); serialBox.addView(space(4)); serialBox.addView(tFrame)
         v.addView(serialBox, lp(MATCH_PARENT, WRAP_CONTENT))
         return v
     }
@@ -158,23 +175,24 @@ class MainActivity : Activity() {
         val shown = recipes.take(48)
         for (r in shown) {
             val card = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL; setBackgroundColor(PANEL)
-                setPadding(0,0,0,dp(10)); setOnClickListener {
+                orientation = LinearLayout.VERTICAL
+                background = round(SURFACE, 18); clipToOutline = true
+                setPadding(0,0,0,dp(12)); setOnClickListener {
                     startActivity(Intent(this@MainActivity, GuideActivity::class.java).putExtra("id", r.id))
                 }
             }
             val img = ImageView(this).apply {
                 scaleType = ImageView.ScaleType.CENTER_CROP
-                RecipeStore.image(this@MainActivity, r.id)?.let { setImageBitmap(it) } ?: setBackgroundColor(PANEL2)
+                RecipeStore.image(this@MainActivity, r.id)?.let { setImageBitmap(it) } ?: setBackgroundColor(ACCENT_SOFT)
             }
-            card.addView(img, LinearLayout.LayoutParams(MATCH_PARENT, dp(110)))
-            val nm = TextView(this).apply { text = r.name; setTextColor(FG); textSize = 14f; setPadding(dp(10),dp(8),dp(10),dp(2)); typeface = Typeface.create("serif", Typeface.BOLD) }
-            val meta = TextView(this).apply { text = "${r.duration} min · ${r.level}"; setTextColor(MUTED); textSize = 11f; setPadding(dp(10),0,dp(10),0) }
+            card.addView(img, LinearLayout.LayoutParams(MATCH_PARENT, dp(120)))
+            val nm = TextView(this).apply { text = r.name; setTextColor(INK); textSize = 15f; setPadding(dp(12),dp(10),dp(12),dp(2)); typeface = Typeface.create("serif", Typeface.BOLD) }
+            val meta = TextView(this).apply { text = "${r.duration} min · ${r.level}"; setTextColor(MUTED); textSize = 11f; setPadding(dp(12),0,dp(12),0) }
             card.addView(nm); card.addView(meta)
             val glp = GridLayout.LayoutParams().apply {
                 width = 0; height = WRAP_CONTENT
                 columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                setMargins(dp(5), dp(5), dp(5), dp(5))
+                setMargins(dp(6), dp(6), dp(6), dp(6))
             }
             grid.addView(card, glp)
         }
@@ -183,8 +201,16 @@ class MainActivity : Activity() {
     }
 
     private fun showCook(cook: Boolean) {
+        showingCook = cook
         cookView.visibility = if (cook) View.VISIBLE else View.GONE
         recipesView.visibility = if (cook) View.GONE else View.VISIBLE
+        styleTab(tabCookBtn, cook)
+        styleTab(tabRecBtn, !cook)
+    }
+
+    private fun styleTab(b: Button, active: Boolean) {
+        if (active) { b.background = round(ACCENT, 24); b.setTextColor(Color.WHITE) }
+        else { b.background = round(SURFACE, 24, 1, LINE); b.setTextColor(MUTED) }
     }
 
     private fun afterChange() { renderCook(); if (running) sendCurrent() }
@@ -199,8 +225,8 @@ class MainActivity : Activity() {
         tSpeed.text = if (turbo) "Turbo" else speed.toString()
         tTemp.text = if (tempLvl == 0) "Off" else TEMPC[tempLvl].toString()
         goBtn.text = if (running) "Stop" else "Départ"
-        goBtn.setBackgroundColor(if (running) HOT else GO)
-        val mode = if (SerialManager.simulated) "SIMULATION (port non accessible)" else "connecté · ${SerialManager.device}"
+        goBtn.background = round(if (running) HOT else ACCENT, 28)
+        val mode = if (SerialManager.simulated) "affichage seul" else "connecté"
         tStatus.text = (if (running) "En marche" else "Au repos") + " · $mode"
         tFrame.text = PowerBoard.hex(currentFrame())
     }
@@ -212,38 +238,43 @@ class MainActivity : Activity() {
     }
 
     private fun sendCurrent() {
-        // Stream the run frame while running, otherwise stream all-off.
         val f = if (running) currentFrame() else PowerBoard.OFF
         SerialManager.setFrame(f)
     }
 
     private fun fmt(s: Int): String = "${s / 60}:${(s % 60).toString().padStart(2, '0')}"
 
-    // --- tiny view helpers ---
+    // --- view helpers ---
     private fun lp(w: Int, h: Int, weight: Float = 0f) = LinearLayout.LayoutParams(w, h, weight)
     private fun space(px: Int) = View(this).apply { layoutParams = LinearLayout.LayoutParams(dp(px), dp(px)) }
-    private fun bigNum(t: String) = TextView(this).apply { text = t; setTextColor(FG); textSize = 34f; gravity = Gravity.CENTER; typeface = Typeface.create("serif", Typeface.BOLD) }
+    private fun bigNum(t: String) = TextView(this).apply { text = t; setTextColor(INK); textSize = 36f; gravity = Gravity.CENTER; typeface = Typeface.create("serif", Typeface.BOLD) }
 
     private fun tab(label: String, onClick: () -> Unit): Button = Button(this).apply {
-        text = label; setTextColor(Color.parseColor("#1A1005")); setBackgroundColor(ACCENT); textSize = 13f
+        text = label; textSize = 13f; typeface = Typeface.DEFAULT_BOLD
+        background = round(SURFACE, 24, 1, LINE); setTextColor(MUTED); stateListAnimator = null
+        setPadding(dp(16), 0, dp(16), 0)
         setOnClickListener { onClick() }
     }
     private fun pill(label: String, onClick: () -> Unit): Button = Button(this).apply {
-        text = label; setTextColor(FG); setBackgroundColor(PANEL2); textSize = 12f
+        text = label; textSize = 12f; typeface = Typeface.DEFAULT_BOLD
+        background = round(ACCENT_SOFT, 22); setTextColor(ACCENT_DEEP); stateListAnimator = null
         setOnClickListener { onClick() }
     }
     private fun dial(cap: String, numView: TextView, minus: () -> Unit, plus: () -> Unit): View {
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
-        val capV = TextView(this).apply { text = cap; setTextColor(MUTED); textSize = 12f; gravity = Gravity.CENTER }
         col.addView(numView, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        val capV = TextView(this).apply { text = cap; setTextColor(MUTED); textSize = 12f; gravity = Gravity.CENTER }
         col.addView(capV, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
-        row.addView(Button(this).apply { text = "–"; setTextColor(FG); setBackgroundColor(PANEL2); setOnClickListener { minus() } })
-        row.addView(space(8))
-        row.addView(Button(this).apply { text = "+"; setTextColor(FG); setBackgroundColor(PANEL2); setOnClickListener { plus() } })
-        col.addView(space(8))
-        col.addView(row, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
+        row.addView(stepBtn("–", minus)); row.addView(space(8)); row.addView(stepBtn("+", plus))
+        col.addView(space(10)); col.addView(row, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
         return col
+    }
+    private fun stepBtn(label: String, onClick: () -> Unit): Button = Button(this).apply {
+        text = label; textSize = 18f; setTextColor(ACCENT_DEEP); typeface = Typeface.DEFAULT_BOLD
+        background = round(SURFACE2, 16, 1, LINE); stateListAnimator = null
+        minimumWidth = dp(46); setPadding(0,0,0,0)
+        setOnClickListener { onClick() }
     }
 
     override fun onDestroy() { super.onDestroy(); handler.removeCallbacks(ticker); SerialManager.stop() }
